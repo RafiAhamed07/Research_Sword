@@ -1,0 +1,3 @@
+./reindex_nlp.py
+./inspect_nlp.py
+./diagnose_retrieval.py
