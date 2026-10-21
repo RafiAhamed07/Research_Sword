@@ -2,3 +2,6 @@ backend/reindex_nlp.py
 backend/inspect_nlp.py
 backend/diagnose_retrieval.py
 data/chroma
+data/documents.json
+backend/.env
+__pycache__/

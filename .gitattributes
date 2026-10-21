@@ -1,0 +1,10 @@
+# Set default behavior to automatically handle text files
+* text=auto
+
+# Explicitly force python config and lockfiles to use LF
+*.toml text eol=lf
+*.lock text eol=lf
+*.py text eol=lf
+
+# Force shell scripts (like entrypoints) to use LF so Docker can execute them
+*.sh text eol=lf
