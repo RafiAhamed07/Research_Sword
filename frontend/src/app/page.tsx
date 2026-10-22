@@ -82,6 +82,36 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
+const HISTORY_PREFIX = "research-sword-chat:";
+const MAX_SAVED_MESSAGES = 60;
+
+function loadHistory(projectId: string): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_PREFIX + projectId);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((m) => m && typeof m.id === "string" && typeof m.content === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(projectId: string, messages: ChatMessage[]) {
+  try {
+    if (messages.length === 0) {
+      localStorage.removeItem(HISTORY_PREFIX + projectId);
+    } else {
+      localStorage.setItem(
+        HISTORY_PREFIX + projectId,
+        JSON.stringify(messages.slice(-MAX_SAVED_MESSAGES))
+      );
+    }
+  } catch {
+    /* storage full or unavailable: history lasts for this session only */
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Small presentational pieces                                               */
 /* -------------------------------------------------------------------------- */
@@ -297,6 +327,8 @@ export default function ResearchWorkspace() {
   const [query, setQuery] = useState("");
   const [loadingChat, setLoadingChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const [notices, setNotices] = useState<Notice[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -334,6 +366,34 @@ export default function ResearchWorkspace() {
     setTimeout(() => setNotices((prev) => prev.filter((n) => n.id !== id)), 5000);
   }, []);
 
+  /* ---- chat history (per project, saved in this browser) ---------------- */
+
+  // Load the saved conversation whenever the active project changes.
+  useEffect(() => {
+    chatAbort.current?.abort();
+    setMessages(loadHistory(projectId));
+    setLoadedFor(projectId);
+  }, [projectId]);
+
+  // Save after every change, but only once this project's history has loaded.
+  // Without this guard, switching projects would overwrite the new project's
+  // saved chat with the previous project's messages.
+  useEffect(() => {
+    if (loadedFor !== projectId) return;
+    saveHistory(projectId, messages);
+  }, [messages, projectId, loadedFor]);
+
+  const clearChat = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      setTimeout(() => setConfirmClear(false), 3000);
+      return;
+    }
+    chatAbort.current?.abort();
+    setMessages([]);
+    setConfirmClear(false);
+  };
+
   /* ---- project id (debounced) ------------------------------------------ */
 
   useEffect(() => {
@@ -342,7 +402,6 @@ export default function ResearchWorkspace() {
     const t = setTimeout(() => {
       setProjectId(trimmed);
       setSelectedDocId(null);
-      setMessages([]);
     }, 500);
     return () => clearTimeout(t);
   }, [projectInput, projectId]);
@@ -738,6 +797,16 @@ export default function ResearchWorkspace() {
               <span className="font-medium text-neutral-900 [.dark_&]:text-neutral-100">{scopeLabel}</span>
             </p>
           </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={clearChat}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 [.dark_&]:text-neutral-300 hover:bg-neutral-100 [.dark_&]:hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {confirmClear ? "Click again to confirm" : "Clear chat"}
+              </button>
+            )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -755,6 +824,7 @@ export default function ResearchWorkspace() {
               </svg>
             )}
           </button>
+          </div>
         </header>
 
         <div ref={feedRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-6" aria-live="polite">

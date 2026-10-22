@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.vectorstore.chroma_store import search_chunks
 from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY")
@@ -11,15 +12,24 @@ model_name = os.getenv("GEMINI_MODEL")
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found. Check your backend/.env file.")
 
-### Gemini
-llm = ChatGoogleGenerativeAI(
-    model=model_name,
-    google_api_key=api_key,
+### Local LLM
+
+llm = ChatOllama(
+    model="llama3.1:8b", # or "mistral"
+    base_url="http://127.0.0.1:11434",
     temperature=0.1,
-    max_output_tokens=1024,
-    thinking_level="low",  # Fastest reasoning tier for gemini-3.8-flash
-    max_retries=2,
+    num_ctx=4096,     # Context window size
 )
+
+### Gemini
+# llm = ChatGoogleGenerativeAI(
+#     model=model_name,
+#     google_api_key=api_key,
+#     temperature=0.1,
+#     max_output_tokens=1024,
+#     thinking_level="low",  # Fastest reasoning tier for gemini-3.8-flash
+#     max_retries=2,
+# )
 
 ### OpenAI
 # llm = ChatOpenAI(
