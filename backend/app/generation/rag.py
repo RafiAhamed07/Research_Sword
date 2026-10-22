@@ -7,7 +7,9 @@ from langchain_ollama import ChatOllama
 load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY")
+# api_key = os.getenv("OPENAI_API_KEY")
 model_name = os.getenv("GEMINI_MODEL")
+# model_name = os.getenv("OPENAI_MODEL")
 
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found. Check your backend/.env file.")
